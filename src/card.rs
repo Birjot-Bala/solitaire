@@ -2,18 +2,20 @@ mod piles;
 
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
+use piles::Pile;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use rand::prelude::*;
 
-use self::piles::{spawn_pile, PilesPlugin};
+use self::piles::{spawn_pile, format_piles, PilesPlugin};
 
 pub struct CardPlugin;
 
 impl Plugin for CardPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, spawn_board)
-            .add_plugins(PilesPlugin);
+        app.add_systems(Startup, (spawn_camera, spawn_board))
+            .add_plugins(PilesPlugin)
+            .add_systems(Update, keyboard_input);
     }
 }
 
@@ -48,14 +50,22 @@ struct Foundation(CardSuit);
 struct Stock;
 
 #[derive(Component)]
-struct Pile;
-
-#[derive(Component)]
 struct Waste;
 
-fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
+#[derive(Component)]
+struct Camera;
 
-    commands.spawn(Camera2dBundle::default());
+#[derive(Component)]
+struct Board;
+
+fn spawn_camera(mut commands: Commands) {
+    commands.spawn((
+        Camera2dBundle::default(),
+        Camera
+    ));
+}
+
+fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     let mut stock = vec![];
     for suit in CardSuit::iter() {
@@ -81,7 +91,8 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
             transform: Transform::from_xyz(-500.0, 275.0, 0.0),
             ..default()
         },
-        Stock
+        Stock,
+        Board
     ))
     .with_children(|parent| {
         for card in stock {
@@ -107,6 +118,7 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
             ..default()
         },
         Foundation(CardSuit::Hearts),
+        Board,
     ));
 
     commands.spawn((
@@ -119,7 +131,8 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
             },
             ..default()
         },
-        Foundation(CardSuit::Diamonds)
+        Foundation(CardSuit::Diamonds),
+        Board
     ));
 
     commands.spawn((
@@ -132,7 +145,8 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
             },
             ..default()
         },
-        Foundation(CardSuit::Clubs)
+        Foundation(CardSuit::Clubs),
+        Board
     ));
 
     commands.spawn((
@@ -145,7 +159,8 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
             },
             ..default()
         },
-        Foundation(CardSuit::Spades)
+        Foundation(CardSuit::Spades),
+        Board
     ));
 
     commands.spawn((
@@ -158,6 +173,31 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
             },
             ..default()
         },
-        Waste
+        Waste,
+        Board
     ));
+}
+
+fn game_reset(
+    commands: &mut Commands, 
+    cards: Query<Entity, With<Board>>,
+) {
+    for card in cards.iter() {
+        commands.entity(card).despawn_recursive();
+    }
+}
+
+fn keyboard_input(
+    keys: Res<ButtonInput<KeyCode>>,
+    mut commands: Commands,
+    cards: Query<Entity, With<Board>>,
+    asset_server: Res<AssetServer>,
+    q_pile: Query<&Children, With<Pile>>,
+    q_children: Query<&Children, With<Card>>,
+    mut transform_query: Query<&mut Transform, With<Card>>) {
+    if keys.just_pressed(KeyCode::F5) {
+        game_reset(&mut commands, cards);
+        spawn_board(commands, asset_server);
+        format_piles(&q_pile, &q_children, &mut transform_query)
+    }
 }

@@ -1,12 +1,15 @@
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
 
-use super::{Card, CardBundle, CardSuit};
+use super::{Board, Card, CardBundle, CardFace, CardSuit};
 
 pub struct PilesPlugin;
 
 #[derive(Component)]
-struct Pile;
+pub struct Pile;
+
+#[derive(Component)]
+struct Base;
 
 impl Plugin for PilesPlugin {
     fn build(&self, app: &mut App) {
@@ -16,55 +19,76 @@ impl Plugin for PilesPlugin {
 
 pub fn spawn_pile(commands: &mut Commands, cards: Vec<Card>, x_position: u32, asset_server: &Res<AssetServer>) {
     commands.spawn((
-        SpatialBundle {
-            transform: Transform::from_xyz(-650.0 + (x_position*150) as f32, 100.0, 0.0),
+        SpriteBundle {
+            sprite: Sprite {
+                color: Color::Rgba { 
+                    red: 1.0,
+                    green: 1.0,
+                    blue: 1.0,
+                    alpha: 0.2
+                },
+                ..default()
+            },
+            transform: Transform::from_xyz(-650.0 + (x_position*150) as f32, 100.0, -100.0),
+            texture: asset_server.load(format!("cards/Back Blue 1.png")),
             ..default()
         },
-        Pile,
+        Base,
+        Board,
         On::<Pointer<DragStart>>::target_insert(Pickable::IGNORE), // Disable picking
         On::<Pointer<DragEnd>>::target_insert(Pickable::default()), // Re-enable picking
-        On::<Pointer<Drag>>::target_component_mut::<Transform>(|drag, transform| {
-            transform.translation.x += drag.delta.x;
-            transform.translation.y -= drag.delta.y;
-            transform.translation.z = 100.0;
-        })
-    ))
-    .with_children(|pile| {
-        for (i, &card) in cards.iter().enumerate() {
-            if i == cards.len() - 1 {
-                pile.spawn((
-                    CardBundle {
-                        card,
-                        sprite : SpriteBundle {
-                            transform: Transform::from_xyz(0.0, -((i*50) as f32), (i*10) as f32),
-                            texture: asset_server.load(format!("cards/{} {}.png", card.suit.to_string(), card.face.0)),
-                            ..default()
+    )).with_children(|base| {
+        base.spawn((
+            SpatialBundle {
+                ..default()
+            },
+            Pile,
+            On::<Pointer<DragStart>>::target_insert(Pickable::IGNORE), // Disable picking
+            On::<Pointer<DragEnd>>::target_insert(Pickable::default()), // Re-enable picking
+            On::<Pointer<Drag>>::target_component_mut::<Transform>(|drag, transform| {
+                transform.translation.x += drag.delta.x;
+                transform.translation.y -= drag.delta.y;
+                transform.translation.z = 100.0;
+            })
+        ))
+        .with_children(|pile| {
+            for (i, &card) in cards.iter().enumerate() {
+                if i == cards.len() - 1 {
+                    pile.spawn((
+                        CardBundle {
+                            card,
+                            sprite : SpriteBundle {
+                                transform: Transform::from_xyz(0.0, -((i*50) as f32), (i*10+1) as f32),
+                                texture: asset_server.load(format!("cards/{} {}.png", card.suit.to_string(), card.face.0)),
+                                ..default()
+                            },
+                            pickable_bundle: PickableBundle::default()
                         },
-                        pickable_bundle: PickableBundle::default()
-                    },
-                ));
-            } else {
-                pile.spawn((
-                    CardBundle {
-                        card,
-                        sprite : SpriteBundle {
-                            transform: Transform::from_xyz(0.0, -((i*50) as f32), (i*10) as f32),
-                            texture: asset_server.load("cards/Back Blue 1.png"),
-                            ..default()
+                    ));
+                } else {
+                    pile.spawn((
+                        CardBundle {
+                            card,
+                            sprite : SpriteBundle {
+                                transform: Transform::from_xyz(0.0, -((i*50) as f32), (i*10+1) as f32),
+                                texture: asset_server.load("cards/Back Blue 1.png"),
+                                ..default()
+                            },
+                            pickable_bundle: PickableBundle {
+                                pickable: Pickable::IGNORE,
+                                ..default()
+                            }
                         },
-                        pickable_bundle: PickableBundle {
-                            pickable: Pickable::IGNORE,
-                            ..default()
-                        }
-                    },
-                ));
+                    ));
+                }
             }
-        }
+        });
     });
+    
 }
 
 
-fn format_piles(
+pub fn format_piles(
     q_pile: &Query<&Children, With<Pile>>, 
     q_children: &Query<&Children, With<Card>>,
     transform_query: &mut Query<&mut Transform, With<Card>>
@@ -74,7 +98,7 @@ fn format_piles(
             if let Ok(mut transform) = transform_query.get_mut(child) {
                 transform.translation.x = 0.0;
                 transform.translation.y = -((i*50) as f32);
-                transform.translation.z = (i*10) as f32;
+                transform.translation.z = (i*10+1) as f32;
             }
 
             for child in q_children.iter_descendants(child) {
@@ -106,11 +130,12 @@ fn move_card_drag_drop_event(
     q_child: Query<&Children>,
     q_parent: Query<&Parent>,
     q_piles: Query<Entity, With<Pile>>,
-    q_cards: Query<&Card>
+    q_cards: Query<&Card>,
+    q_bases: Query<(Entity, &Children), With<Base>>
 ) {
     for drop in drag_drop_event.read() {
-        if let Some(parent) = q_parent.iter_ancestors(drop.target).last() {
-            if let Some(other_parent) = q_parent.iter_ancestors(drop.dropped).last() {
+        if let Some(parent) = q_parent.iter_ancestors(drop.target).find(|&parent| q_piles.contains(parent)) {
+            if let Some(other_parent) = q_parent.iter_ancestors(drop.dropped).find(|&parent| q_piles.contains(parent)) {
                 if parent != other_parent {
                     if let Ok(pile) = q_piles.get(parent) {
                         if let Some(last_card) = q_child.iter_descendants(pile).last() {
@@ -130,6 +155,14 @@ fn move_card_drag_drop_event(
                                 }
                             }
                         }
+                    }
+                }
+            }
+        } else if let Ok((_,  children)) = q_bases.get(drop.target)  {
+            if let Ok(card_comp) = q_cards.get(drop.dropped) {
+                if card_comp.face == CardFace(13) {
+                    if let Some(&child) = children.first() {
+                        commands.entity(child).add_child(drop.dropped);
                     }
                 }
             }
