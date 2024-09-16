@@ -1,6 +1,8 @@
 mod foundation;
 mod piles;
 mod systems;
+mod stock;
+mod waste;
 
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
@@ -11,7 +13,9 @@ use rand::prelude::*;
 
 use self::piles::{spawn_pile, format_piles};
 use self::foundation::spawn_foundations;
+use self::stock::spawn_stock;
 use self::systems::SystemsPlugin;
+use self::waste::spawn_waste;
 
 pub struct CardPlugin;
 
@@ -48,12 +52,6 @@ struct CardBundle {
 }
 
 #[derive(Component)]
-struct Stock;
-
-#[derive(Component)]
-struct Waste;
-
-#[derive(Component)]
 struct Camera;
 
 #[derive(Component)]
@@ -87,43 +85,14 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
     spawn_pile(&mut commands, stock.split_off(stock.len() - 6), 6, &asset_server);
     spawn_pile(&mut commands, stock.split_off(stock.len() - 7), 7, &asset_server);
 
-    commands.spawn((
-        SpatialBundle {
-            transform: Transform::from_xyz(-500.0, 275.0, 0.0),
-            ..default()
-        },
-        Stock,
-        Board
-    ))
-    .with_children(|parent| {
-        for card in stock {
-            parent.spawn(CardBundle {
-                card,
-                sprite : SpriteBundle {
-                    texture: asset_server.load("cards/Back Blue 1.png"),
-                    ..default()
-                },
-                pickable_bundle: PickableBundle::default()
-            });
-        }
-    });
+    spawn_stock(&mut commands, stock, &asset_server);
 
     spawn_foundations(&mut commands, &asset_server);
 
-    commands.spawn((
-        SpriteBundle {
-            transform: Transform::from_xyz(-350.0, 275.0, 0.0),
-            texture: asset_server.load("cards/Back Blue 1.png"),
-            sprite: Sprite {
-                color: Color::Rgba { red: 0.5, green: 0.5, blue: 0.5, alpha: 0.25 },
-                ..default()
-            },
-            ..default()
-        },
-        Waste,
-        Board
-    ));
+    spawn_waste(commands, asset_server);
 }
+
+
 
 fn game_reset(
     commands: &mut Commands, 
