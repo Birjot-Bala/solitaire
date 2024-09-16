@@ -40,7 +40,7 @@ pub fn spawn_pile(commands: &mut Commands, cards: Vec<Card>, x_position: u32, as
             On::<Pointer<Drag>>::target_component_mut::<Transform>(|drag, transform| {
                 transform.translation.x += drag.delta.x;
                 transform.translation.y -= drag.delta.y;
-                transform.translation.z = 100.0;
+                transform.translation.z = 1000.0;
             })
         ))
         .with_children(|pile| {

@@ -74,8 +74,6 @@ pub fn format_foundation(
                         if child == card_on_top {
                             *visibility = Visibility::Visible;
                             transform.translation.z = 1.0;
-                        } else {
-                            *visibility = Visibility::Hidden;
                         }
                     }
                 }

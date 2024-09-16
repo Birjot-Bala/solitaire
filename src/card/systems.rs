@@ -11,7 +11,28 @@ pub struct SystemsPlugin;
 
 impl Plugin for SystemsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (handle_click_event, move_card_drag_drop_event, flip_last_card_of_piles, handle_drag_end_event).chain());
+        app.add_systems(Update, (handle_click_event, handle_drag_event, move_card_drag_drop_event, flip_last_card_of_piles, handle_drag_end_event).chain());
+    }
+}
+
+fn handle_drag_event(
+    mut drag_event: EventReader<Pointer<Drag>>,
+    mut transform_query: Query<&mut Transform, With<Card>>,
+    q_foundation: Query<Entity, With<Foundation>>,
+    q_children: Query<&Children>
+) {
+    for drag in drag_event.read() {
+        for foundation in q_foundation.iter() {
+            if let Some(top_card) = q_children.iter_descendants(foundation).last() {
+                if drag.target == top_card {
+                    if let Ok(mut transform) = transform_query.get_mut(drag.target) {
+                        transform.translation.x += drag.delta.x;
+                        transform.translation.y -= drag.delta.y;
+                        transform.translation.z = 1000.0;
+                    }
+                }
+            } 
+        }
     }
 }
 
