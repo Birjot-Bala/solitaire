@@ -13,7 +13,7 @@ impl Plugin for SystemsPlugin {
     }
 }
 
-pub fn handle_drag_end_event(
+fn handle_drag_end_event(
     mut drag_end_event: EventReader<Pointer<DragEnd>>,
     q_pile: Query<&Children, With<Pile>>,
     q_children: Query<&Children, With<Card>>,
@@ -29,7 +29,7 @@ pub fn handle_drag_end_event(
     }
 }
 
-pub fn move_card_drag_drop_event(
+fn move_card_drag_drop_event(
     mut commands: Commands,
     mut drag_drop_event: EventReader<Pointer<Drop>>,
     q_child: Query<&Children>,
