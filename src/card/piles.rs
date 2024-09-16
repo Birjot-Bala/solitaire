@@ -1,21 +1,13 @@
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
 
-use super::{Board, Card, CardBundle, CardFace, CardSuit};
-
-pub struct PilesPlugin;
+use super::{Board, Card, CardBundle};
 
 #[derive(Component)]
 pub struct Pile;
 
 #[derive(Component)]
-struct Base;
-
-impl Plugin for PilesPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_systems(Update, (move_card_drag_drop_event, flip_last_card_of_piles, handle_drag_end_event).chain());
-    }
-}
+pub struct Base;
 
 pub fn spawn_pile(commands: &mut Commands, cards: Vec<Card>, x_position: u32, asset_server: &Res<AssetServer>) {
     commands.spawn((
@@ -87,7 +79,6 @@ pub fn spawn_pile(commands: &mut Commands, cards: Vec<Card>, x_position: u32, as
     
 }
 
-
 pub fn format_piles(
     q_pile: &Query<&Children, With<Pile>>, 
     q_children: &Query<&Children, With<Card>>,
@@ -112,65 +103,7 @@ pub fn format_piles(
     }
 }
 
-fn handle_drag_end_event(
-    mut drag_end_event: EventReader<Pointer<DragEnd>>,
-    q_pile: Query<&Children, With<Pile>>,
-    q_children: Query<&Children, With<Card>>,
-    mut transform_query: Query<&mut Transform, With<Card>>
-) {
-    for _ in drag_end_event.read() {
-        format_piles(&q_pile, &q_children, &mut transform_query);
-    }
-
-}
-
-fn move_card_drag_drop_event(
-    mut commands: Commands,
-    mut drag_drop_event: EventReader<Pointer<Drop>>,
-    q_child: Query<&Children>,
-    q_parent: Query<&Parent>,
-    q_piles: Query<Entity, With<Pile>>,
-    q_cards: Query<&Card>,
-    q_bases: Query<(Entity, &Children), With<Base>>
-) {
-    for drop in drag_drop_event.read() {
-        if let Some(parent) = q_parent.iter_ancestors(drop.target).find(|&parent| q_piles.contains(parent)) {
-            if let Some(other_parent) = q_parent.iter_ancestors(drop.dropped).find(|&parent| q_piles.contains(parent)) {
-                if parent != other_parent {
-                    if let Ok(pile) = q_piles.get(parent) {
-                        if let Some(last_card) = q_child.iter_descendants(pile).last() {
-                            if last_card != drop.dropped {
-                                if let Ok(last_card_comp) = q_cards.get(last_card) {
-                                    if let Ok(dropped_card_comp) = q_cards.get(drop.dropped) {
-                                        let black_suits = [CardSuit::Clubs, CardSuit::Spades];
-                                        let red_suits = [CardSuit::Hearts, CardSuit::Diamonds];
-                                        let alt_suit = (
-                                            black_suits.contains(&dropped_card_comp.suit) && red_suits.contains(&last_card_comp.suit)) 
-                                            || (red_suits.contains(&dropped_card_comp.suit) && black_suits.contains(&last_card_comp.suit)
-                                        );
-                                        if alt_suit && (last_card_comp.face.0.checked_sub(dropped_card_comp.face.0) == Some(1)) {
-                                            commands.entity(last_card).add_child(drop.dropped);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        } else if let Ok((_,  children)) = q_bases.get(drop.target)  {
-            if let Ok(card_comp) = q_cards.get(drop.dropped) {
-                if card_comp.face == CardFace(13) {
-                    if let Some(&child) = children.first() {
-                        commands.entity(child).add_child(drop.dropped);
-                    }
-                }
-            }
-        }
-    }
-}
-
-fn flip_last_card_of_piles(
+pub fn flip_last_card_of_piles(
     mut drag_drop_event: EventReader<Pointer<Drop>>,
     q_piles: Query<&Children, With<Pile>>,
     mut q_pickable: Query<(Entity, &mut Pickable, &mut Handle<Image>, &Card)>,

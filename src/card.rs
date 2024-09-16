@@ -1,4 +1,6 @@
+mod foundation;
 mod piles;
+mod systems;
 
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
@@ -7,14 +9,16 @@ use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use rand::prelude::*;
 
-use self::piles::{spawn_pile, format_piles, PilesPlugin};
+use self::piles::{spawn_pile, format_piles};
+use self::foundation::spawn_foundations;
+use self::systems::SystemsPlugin;
 
 pub struct CardPlugin;
 
 impl Plugin for CardPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, (spawn_camera, spawn_board))
-            .add_plugins(PilesPlugin)
+            .add_plugins(SystemsPlugin)
             .add_systems(Update, keyboard_input);
     }
 }
@@ -42,9 +46,6 @@ struct CardBundle {
     sprite: SpriteBundle,
     pickable_bundle: PickableBundle
 }
-
-#[derive(Component)]
-struct Foundation(CardSuit);
 
 #[derive(Component)]
 struct Stock;
@@ -107,61 +108,7 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
         }
     });
 
-    commands.spawn((
-        SpriteBundle {
-            transform: Transform::from_xyz(-50.0, 275.0, 0.0),
-            texture: asset_server.load("cards/Hearts 1.png"),
-            sprite: Sprite {
-                color: Color::Rgba { red: 0.5, green: 0.5, blue: 0.5, alpha: 0.25 },
-                ..default()
-            },
-            ..default()
-        },
-        Foundation(CardSuit::Hearts),
-        Board,
-    ));
-
-    commands.spawn((
-        SpriteBundle {
-            transform: Transform::from_xyz(100.0, 275.0, 0.0),
-            texture: asset_server.load("cards/Diamonds 1.png"),
-            sprite: Sprite {
-                color: Color::Rgba { red: 0.5, green: 0.5, blue: 0.5, alpha: 0.25 },
-                ..default()
-            },
-            ..default()
-        },
-        Foundation(CardSuit::Diamonds),
-        Board
-    ));
-
-    commands.spawn((
-        SpriteBundle {
-            transform: Transform::from_xyz(250.0, 275.0, 0.0),
-            texture: asset_server.load("cards/Clubs 1.png"),
-            sprite: Sprite {
-                color: Color::Rgba { red: 0.5, green: 0.5, blue: 0.5, alpha: 0.25 },
-                ..default()
-            },
-            ..default()
-        },
-        Foundation(CardSuit::Clubs),
-        Board
-    ));
-
-    commands.spawn((
-        SpriteBundle {
-            transform: Transform::from_xyz(400.0, 275.0, 0.0),
-            texture: asset_server.load("cards/Spades 1.png"),
-            sprite: Sprite {
-                color: Color::Rgba { red: 0.5, green: 0.5, blue: 0.5, alpha: 0.25 },
-                ..default()
-            },
-            ..default()
-        },
-        Foundation(CardSuit::Spades),
-        Board
-    ));
+    spawn_foundations(&mut commands, &asset_server);
 
     commands.spawn((
         SpriteBundle {
