@@ -3,13 +3,35 @@ use bevy_mod_picking::prelude::*;
 
 use super::foundation::{Foundation, format_foundation};
 use super::piles::*;
+use super::stock::Stock;
+use super::waste::Waste;
 use super::{Card, CardFace, CardSuit};
 
 pub struct SystemsPlugin;
 
 impl Plugin for SystemsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (move_card_drag_drop_event, flip_last_card_of_piles, handle_drag_end_event).chain());
+        app.add_systems(Update, (handle_click_event, move_card_drag_drop_event, flip_last_card_of_piles, handle_drag_end_event).chain());
+    }
+}
+
+fn handle_click_event(
+    mut commands: Commands,
+    mut click_event: EventReader<Pointer<Click>>,
+    q_stock: Query<&Children, With<Stock>>,
+    q_waste: Query<Entity, With<Waste>>,
+    mut transform_query: Query<(&mut Handle<Image>, &Card), With<Card>>,
+    asset_server: Res<AssetServer>,
+) {
+    for click in click_event.read() {
+        let children = q_stock.single();
+        if children.contains(&click.target) {
+            let waste = q_waste.single();
+            if let Ok((mut texture, card)) = transform_query.get_mut(click.target) {
+                commands.entity(waste).add_child(click.target);
+                texture.set_if_neq(asset_server.load(format!("cards/{} {}.png", card.suit.to_string(), card.face.0)));
+            }
+        }
     }
 }
 

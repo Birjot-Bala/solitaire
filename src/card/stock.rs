@@ -4,7 +4,7 @@ use bevy_mod_picking::prelude::*;
 use super::{Board, Card, CardBundle};
 
 #[derive(Component)]
-struct Stock;
+pub struct Stock;
 
 pub fn spawn_stock(commands: &mut Commands, stock: Vec<Card>, asset_server: &Res<AssetServer>) {
     commands.spawn((

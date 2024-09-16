@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use super::Board;
 
 #[derive(Component)]
-struct Waste;
+pub struct Waste;
 
 pub fn spawn_waste(commands: &mut Commands, asset_server: &Res<AssetServer>) {
     commands.spawn((
