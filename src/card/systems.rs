@@ -4,7 +4,7 @@ use bevy_mod_picking::prelude::*;
 use super::foundation::{Foundation, format_foundation};
 use super::piles::*;
 use super::stock::Stock;
-use super::waste::Waste;
+use super::waste::{format_waste, Waste};
 use super::{Card, CardFace, CardSuit};
 
 pub struct SystemsPlugin;
@@ -57,6 +57,7 @@ fn handle_drag_end_event(
     q_pile: Query<&Children, With<Pile>>,
     q_children: Query<&Children, With<Card>>,
     q_foundation: Query<&Children, With<Foundation>>,
+    q_waste: Query<&Children, With<Waste>>,
     mut set: ParamSet<(
         Query<&mut Transform, With<Card>>,
         Query<(&mut Visibility, &mut Transform), With<Card>>
@@ -65,6 +66,7 @@ fn handle_drag_end_event(
     for _ in drag_end_event.read() {
         format_piles(&q_pile, &q_children, &mut set.p0());
         format_foundation(&q_foundation, &q_children, &mut set.p1());
+        format_waste(&q_waste, &q_children, &mut set.p0());
     }
 }
 
