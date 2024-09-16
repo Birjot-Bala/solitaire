@@ -89,7 +89,7 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     spawn_foundations(&mut commands, &asset_server);
 
-    spawn_waste(commands, asset_server);
+    spawn_waste(&mut commands, &asset_server);
 }
 
 
