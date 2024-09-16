@@ -120,21 +120,27 @@ fn dropped_on_empty_pile(q_cards: &Query<&Card>, drop: &Pointer<Drop>, children:
 fn dropped_on_pile(q_parent: &Query<&Parent>, drop: &Pointer<Drop>, q_piles: &Query<Entity, With<Pile>>, parent: Entity, q_child: &Query<&Children>, q_cards: &Query<&Card>, commands: &mut Commands) {
     if let Some(other_parent) = q_parent.iter_ancestors(drop.dropped).find(|&parent| q_piles.contains(parent)) {
         if parent != other_parent {
-            if let Ok(pile) = q_piles.get(parent) {
-                if let Some(last_card) = q_child.iter_descendants(pile).last() {
-                    if last_card != drop.dropped {
-                        if let Ok(last_card_comp) = q_cards.get(last_card) {
-                            if let Ok(dropped_card_comp) = q_cards.get(drop.dropped) {
-                                let black_suits = [CardSuit::Clubs, CardSuit::Spades];
-                                let red_suits = [CardSuit::Hearts, CardSuit::Diamonds];
-                                let alt_suit = (
-                                    black_suits.contains(&dropped_card_comp.suit) && red_suits.contains(&last_card_comp.suit)) 
-                                    || (red_suits.contains(&dropped_card_comp.suit) && black_suits.contains(&last_card_comp.suit)
-                                );
-                                if alt_suit && (last_card_comp.face.0.checked_sub(dropped_card_comp.face.0) == Some(1)) {
-                                    commands.entity(last_card).add_child(drop.dropped);
-                                }
-                            }
+            move_to_pile(q_piles, parent, q_child, drop, q_cards, commands);
+        }
+    } else {
+        move_to_pile(q_piles, parent, q_child, drop, q_cards, commands);
+    }
+}
+
+fn move_to_pile(q_piles: &Query<Entity, With<Pile>>, parent: Entity, q_child: &Query<&Children>, drop: &Pointer<Drop>, q_cards: &Query<&Card>, commands: &mut Commands) {
+    if let Ok(pile) = q_piles.get(parent) {
+        if let Some(last_card) = q_child.iter_descendants(pile).last() {
+            if last_card != drop.dropped {
+                if let Ok(last_card_comp) = q_cards.get(last_card) {
+                    if let Ok(dropped_card_comp) = q_cards.get(drop.dropped) {
+                        let black_suits = [CardSuit::Clubs, CardSuit::Spades];
+                        let red_suits = [CardSuit::Hearts, CardSuit::Diamonds];
+                        let alt_suit = (
+                            black_suits.contains(&dropped_card_comp.suit) && red_suits.contains(&last_card_comp.suit)) 
+                            || (red_suits.contains(&dropped_card_comp.suit) && black_suits.contains(&last_card_comp.suit)
+                        );
+                        if alt_suit && (last_card_comp.face.0.checked_sub(dropped_card_comp.face.0) == Some(1)) {
+                            commands.entity(last_card).add_child(drop.dropped);
                         }
                     }
                 }

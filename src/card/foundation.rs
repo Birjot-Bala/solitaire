@@ -34,7 +34,7 @@ pub fn spawn_foundations(commands: &mut Commands, asset_server: &Res<AssetServer
     );
 }
 
-fn spawn_foundation(commands: &mut Commands<'_, '_>, suit: CardSuit, texture: Handle<Image>, transform: Transform) {
+fn spawn_foundation(commands: &mut Commands, suit: CardSuit, texture: Handle<Image>, transform: Transform) {
     commands.spawn((
         SpriteBundle {
             transform,
@@ -79,7 +79,7 @@ pub fn format_foundation(
                         }
                     }
                 }
-            }
+            } 
         }
     }
 }
