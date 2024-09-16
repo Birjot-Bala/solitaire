@@ -18,20 +18,37 @@ impl Plugin for SystemsPlugin {
 fn handle_click_event(
     mut commands: Commands,
     mut click_event: EventReader<Pointer<Click>>,
-    q_stock: Query<&Children, With<Stock>>,
-    q_waste: Query<Entity, With<Waste>>,
-    mut transform_query: Query<(&mut Handle<Image>, &Card), With<Card>>,
+    q_stock: Query<Option<&Children>, With<Stock>>,
+    q_waste: Query<(Entity, Option<&Children>), With<Waste>>,
+    q_children: Query<&Children, With<Card>>,
+    mut transform_query: Query<(&mut Transform, &mut Handle<Image>, &Card), With<Card>>,
     asset_server: Res<AssetServer>,
 ) {
     for click in click_event.read() {
-        let children = q_stock.single();
-        if children.contains(&click.target) {
-            let waste = q_waste.single();
-            if let Ok((mut texture, card)) = transform_query.get_mut(click.target) {
-                commands.entity(waste).add_child(click.target);
-                texture.set_if_neq(asset_server.load(format!("cards/{} {}.png", card.suit.to_string(), card.face.0)));
+        if let Some(children) = q_stock.single() {
+            if children.contains(&click.target) {
+                let (waste, waste_children) = q_waste.single();
+                if let Some(waste_children) = waste_children {
+                    for &child in waste_children {
+                        if let Some(top_card) = q_children.iter_descendants(child).last() {
+                            add_child_to_waste(&mut transform_query, click, &mut commands, top_card, &asset_server);
+                        } else {
+                            add_child_to_waste(&mut transform_query, click, &mut commands, child, &asset_server);
+                        }
+                    }
+                } else {
+                    add_child_to_waste(&mut transform_query, click, &mut commands, waste, &asset_server);
+                }
             }
         }
+    }
+}
+
+fn add_child_to_waste(transform_query: &mut Query<(&mut Transform, &mut Handle<Image>, &Card), With<Card>>, click: &Pointer<Click>, commands: &mut Commands, entity: Entity, asset_server: &Res<AssetServer>) {
+    if let Ok((mut transform, mut texture, card)) = transform_query.get_mut(click.target) {
+        commands.entity(entity).add_child(click.target);
+        texture.set_if_neq(asset_server.load(format!("cards/{} {}.png", card.suit.to_string(), card.face.0)));
+        transform.translation.z = 1.0;
     }
 }
 

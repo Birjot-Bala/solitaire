@@ -9,7 +9,7 @@ pub struct Stock;
 pub fn spawn_stock(commands: &mut Commands, stock: Vec<Card>, asset_server: &Res<AssetServer>) {
     commands.spawn((
         SpatialBundle {
-            transform: Transform::from_xyz(-500.0, 275.0, 0.0),
+            transform: Transform::from_xyz(-500.0, 275.0, -100.0),
             ..default()
         },
         Stock,
