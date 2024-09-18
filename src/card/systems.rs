@@ -79,15 +79,12 @@ fn handle_drag_end_event(
     q_children: Query<&Children, With<Card>>,
     q_foundation: Query<&Children, With<Foundation>>,
     q_waste: Query<&Children, With<Waste>>,
-    mut set: ParamSet<(
-        Query<&mut Transform, With<Card>>,
-        Query<(&mut Visibility, &mut Transform), With<Card>>
-    )>
+    mut transform_query: Query<&mut Transform, With<Card>>,
 ) {
     for _ in drag_end_event.read() {
-        format_piles(&q_pile, &q_children, &mut set.p0());
-        format_foundation(&q_foundation, &q_children, &mut set.p1());
-        format_waste(&q_waste, &q_children, &mut set.p0());
+        format_piles(&q_pile, &q_children, &mut transform_query);
+        format_foundation(&q_foundation, &q_children, &mut transform_query);
+        format_waste(&q_waste, &q_children, &mut transform_query);
     }
 }
 

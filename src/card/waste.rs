@@ -41,13 +41,17 @@ pub fn format_waste(
             if let Ok(mut transform) = transform_query.get_mut(child) {
                 transform.translation.x = 0.0;
                 transform.translation.y = 0.0;
+                transform.translation.z = 1.0;
             }
             
-            if let Some(_) = q_children.iter_descendants(child).last() {
+            if let Some(top_card) = q_children.iter_descendants(child).last() {
                 for child in q_children.iter_descendants(child) {
                     if let Ok(mut transform) = transform_query.get_mut(child) {
                         transform.translation.x = 0.0;
                         transform.translation.y = 0.0;
+                        if child == top_card {
+                            transform.translation.z = 1.0;
+                        }
                     }
                 }
             }

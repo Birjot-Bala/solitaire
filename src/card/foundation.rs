@@ -55,12 +55,12 @@ fn spawn_foundation(commands: &mut Commands, suit: CardSuit, texture: Handle<Ima
 pub fn format_foundation(
     q_foundation: &Query<&Children, With<Foundation>>,
     q_children: &Query<&Children, With<Card>>,
-    component_query: &mut Query<(&mut Visibility, &mut Transform), With<Card>>
+    transform_query: &mut Query<&mut Transform, With<Card>>
 ) {
 
     for children in q_foundation {
         for &child in children {
-            if let Ok((_, mut transform)) = component_query.get_mut(child) {
+            if let Ok(mut transform) = transform_query.get_mut(child) {
                 transform.translation.x = 0.0;
                 transform.translation.y = 0.0;
                 transform.translation.z = 1.0;
@@ -68,11 +68,10 @@ pub fn format_foundation(
             
             if let Some(card_on_top) = q_children.iter_descendants(child).last() {
                 for child in q_children.iter_descendants(child) {
-                    if let Ok((mut visibility, mut transform)) = component_query.get_mut(child) {
+                    if let Ok(mut transform) = transform_query.get_mut(child) {
                         transform.translation.x = 0.0;
                         transform.translation.y = 0.0;
                         if child == card_on_top {
-                            *visibility = Visibility::Visible;
                             transform.translation.z = 1.0;
                         }
                     }
