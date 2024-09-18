@@ -39,14 +39,15 @@ fn handle_drag_event(
 fn handle_click_event(
     mut commands: Commands,
     mut click_event: EventReader<Pointer<Click>>,
-    q_stock: Query<Option<&Children>, With<Stock>>,
+    q_stock: Query<(Entity, Option<&Children>), With<Stock>>,
     q_waste: Query<(Entity, Option<&Children>), With<Waste>>,
     q_children: Query<&Children, With<Card>>,
     mut transform_query: Query<(&mut Transform, &mut Handle<Image>, &Card), With<Card>>,
     asset_server: Res<AssetServer>,
 ) {
     for click in click_event.read() {
-        if let Some(children) = q_stock.single() {
+        let (stock, opt_children) = q_stock.single();
+        if let Some(children) = opt_children {
             if children.contains(&click.target) {
                 let (waste, waste_children) = q_waste.single();
                 if let Some(waste_children) = waste_children {
@@ -59,6 +60,28 @@ fn handle_click_event(
                     }
                 } else {
                     add_child_to_waste(&mut transform_query, click, &mut commands, waste, &asset_server);
+                }
+            }
+        } else {
+            if stock == click.target {
+                let (_, waste_children) = q_waste.single();
+                if let Some(waste_children) = waste_children {
+                    for &child in waste_children {
+                        if let Ok((mut transform, mut texture, _)) = transform_query.get_mut(child) {
+                            commands.entity(stock).add_child(child);
+                            texture.set_if_neq(asset_server.load("cards/Back Blue 1.png"));
+                            transform.translation.z = 10.0;
+                        }
+
+                        for (i, child) in q_children.iter_descendants(child).enumerate() {
+                            if let Ok((mut transform, mut texture, _)) = transform_query.get_mut(child) {
+                                commands.entity(stock).add_child(child);
+                                texture.set_if_neq(asset_server.load("cards/Back Blue 1.png"));
+                                transform.translation.z = 10.0 - 0.1 * (i as f32);
+                            }
+                        }
+
+                    }
                 }
             }
         }
@@ -108,8 +131,10 @@ fn move_card_drag_drop_event(
                 if let Ok(dropped_card) = q_cards.get(drop.dropped) {
                     if foundation.0 == dropped_card.suit {
                         if let Ok(target_card) = q_cards.get(drop.target) {
-                            if dropped_card.face.0.checked_sub(target_card.face.0) == Some(1) {
-                                commands.entity(drop.target).add_child(drop.dropped);
+                            if !q_child.contains(drop.dropped) {
+                                if dropped_card.face.0.checked_sub(target_card.face.0) == Some(1) {
+                                    commands.entity(drop.target).add_child(drop.dropped);
+                                }
                             }
                         }
                     }
